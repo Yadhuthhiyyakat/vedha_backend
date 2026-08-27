@@ -98,15 +98,15 @@ export const logout = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.user!.id;
+  const token = req.accessToken;
 
-  // Sign out the user from all sessions (or a single one)
-  // admin.signOut invalidates the session that issued the JWT
-  const { error } = await supabaseAdmin.auth.admin.signOutUser(userId);
+  if (token) {
+    const { error } = await supabaseAdmin.auth.admin.signOut(token);
 
-  if (error) {
-    res.status(500).json({ error: "Logout failed" });
-    return;
+    if (error) {
+      res.status(500).json({ error: "Logout failed" });
+      return;
+    }
   }
 
   res.json({ message: "Logged out successfully" });
@@ -133,3 +133,79 @@ export const me = async (
 
   res.json(data);
 };
+
+// ─── DELETE /api/auth/delete ──────────────────────────────────────────────────
+// Deletes the currently authenticated user's account permanently from Supabase Auth
+export const deleteAccount = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user!.id;
+
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+  if (error) {
+    res.status(500).json({ error: error.message || "Failed to delete user account" });
+    return;
+  }
+
+  res.json({ message: "Account deleted successfully" });
+};
+
+// ─── POST /api/auth/forgot-password ──────────────────────────────────────────
+// Sends a password reset OTP / recovery email via Supabase Auth SMTP
+export const forgotPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { email } = req.body as { email: string };
+
+  const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email);
+
+  if (error) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
+
+  res.json({ message: "Password reset OTP sent to your email" });
+};
+
+// ─── POST /api/auth/reset-password ───────────────────────────────────────────
+// Verifies the OTP sent to email and updates the password
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { email, otp, new_password } = req.body as {
+    email: string;
+    otp: string;
+    new_password: string;
+  };
+
+  // Verify recovery OTP
+  const { data, error } = await supabaseAdmin.auth.verifyOtp({
+    email,
+    token: otp,
+    type: "recovery",
+  });
+
+  if (error || !data.user) {
+    res.status(400).json({ error: error?.message || "Invalid or expired OTP" });
+    return;
+  }
+
+  // Update password for the user
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    data.user.id,
+    { password: new_password }
+  );
+
+  if (updateError) {
+    res.status(400).json({ error: updateError.message });
+    return;
+  }
+
+  res.json({ message: "Password updated successfully" });
+};
+
+

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { supabaseAdmin } from "../config/supabase.js";
 import crypto from "crypto";
+import { decryptData } from "../services/encryption.service.js";
 
 // ─── POST /api/tokens ─────────────────────────────────────────────────────────
 // Creates a short-lived QR verification token for a document
@@ -87,14 +88,27 @@ export const verifyToken = async (
 
   const document = tokenRow.documents as Record<string, unknown>;
 
+  // If document_data contains an encrypted blob, attempt decryption
+  let innerData: Record<string, unknown> = {};
+  if (document && document.document_data) {
+    try {
+      const plaintext = decryptData(document.document_data);
+      innerData = JSON.parse(plaintext);
+    } catch {
+      // If unencrypted or decryption fails, ignore
+    }
+  }
+
+  const combined = { ...document, document_data: innerData, ...innerData };
+
   // Filter to only shared fields if specified
-  let exposedData: Record<string, unknown> = document;
+  let exposedData: Record<string, unknown> = combined;
   const sharedFields = tokenRow.shared_fields as string[] | null;
   if (sharedFields && sharedFields.length > 0) {
     exposedData = {};
     for (const field of sharedFields) {
-      if (field in document) {
-        exposedData[field] = document[field];
+      if (field in combined) {
+        exposedData[field] = combined[field];
       }
     }
   }

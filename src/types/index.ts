@@ -13,9 +13,11 @@ export interface Document {
   owner_id: string;
   title: string;
   type: string;
-  document_data: Record<string, unknown> | null;
+  /** Encrypted AES-256-GCM blob string (or JSON object) stored in document_data column. Use GET /decrypt to retrieve decrypted data. */
+  document_data?: string | Record<string, unknown> | null;
   status: "verified" | "pending" | "rejected";
   created_at: string;
+  updated_at: string;
 }
 
 export interface VerificationToken {

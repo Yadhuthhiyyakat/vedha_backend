@@ -14,7 +14,7 @@ export const updateProfileSchema = z.object({
 export const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string().min(1, "Document type is required"),
-  document_data: z.record(z.unknown()).optional(),
+  document_data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const updateDocumentStatusSchema = z.object({

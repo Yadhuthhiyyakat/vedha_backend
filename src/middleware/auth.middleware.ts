@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { supabaseAdmin } from "../config/supabase.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -11,9 +11,9 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
- * requireAuth — verifies the Supabase JWT in the Authorization header.
- * Attaches the decoded user payload to req.user.
- * Returns 401 if the token is missing or invalid.
+ * requireAuth — verifies the Supabase access token via Supabase Auth API.
+ * Attaches the user payload to req.user.
+ * Returns 401 if the token is missing, invalid, or expired.
  */
 export const requireAuth = async (
   req: AuthenticatedRequest,
@@ -29,31 +29,25 @@ export const requireAuth = async (
 
   const token = authHeader.split(" ")[1]!;
 
-  try {
-    // Supabase JWT secrets are Base64-encoded — decode to raw bytes first
-    const jwtSecret = Buffer.from(process.env.JWT_SECRET!, "base64");
-    const decoded = jwt.verify(token, jwtSecret) as {
-      sub: string;
-      email?: string;
-      role?: string;
-    };
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
-    req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
-    };
-    req.accessToken = token;
-
-    next();
-  } catch {
+  if (error || !user) {
     res.status(401).json({ error: "Invalid or expired token" });
+    return;
   }
+
+  req.user = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  };
+  req.accessToken = token;
+
+  next();
 };
 
 /**
  * optionalAuth — same as requireAuth but does NOT block the request if no token is provided.
- * Useful for endpoints that have both authenticated and anonymous access paths.
  */
 export const optionalAuth = async (
   req: AuthenticatedRequest,
@@ -70,22 +64,19 @@ export const optionalAuth = async (
   const token = authHeader.split(" ")[1]!;
 
   try {
-    const jwtSecret = Buffer.from(process.env.JWT_SECRET!, "base64");
-    const decoded = jwt.verify(token, jwtSecret) as {
-      sub: string;
-      email?: string;
-      role?: string;
-    };
-
-    req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
-    };
-    req.accessToken = token;
+    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+    if (user) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      };
+      req.accessToken = token;
+    }
   } catch {
     // Silently ignore invalid tokens for optional auth
   }
 
   next();
 };
+
