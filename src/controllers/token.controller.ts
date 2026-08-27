@@ -99,7 +99,7 @@ export const verifyToken = async (
     }
   }
 
-  const combined = { ...document, document_data: innerData, ...innerData };
+  const combined: Record<string, unknown> = { ...document, document_data: innerData, ...innerData };
 
   // Filter to only shared fields if specified
   let exposedData: Record<string, unknown> = combined;
@@ -182,7 +182,7 @@ export const revokeToken = async (
     return;
   }
 
-  const doc = tokenRow.documents as { owner_id: string } | null;
+  const doc = tokenRow.documents as unknown as { owner_id: string } | null;
   if (doc?.owner_id !== userId) {
     res.status(403).json({ error: "Access denied" });
     return;

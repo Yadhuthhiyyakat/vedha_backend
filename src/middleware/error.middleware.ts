@@ -6,15 +6,24 @@ import { Request, Response, NextFunction } from "express";
  * and returns a consistent JSON error response.
  */
 export const errorHandler = (
-  err: Error,
-  req: Request,
+  err: any,
+  _req: Request,
   res: Response,
-  next: NextFunction // eslint-disable-line @typescript-eslint/no-unused-vars
+  _next: NextFunction
 ): void => {
   console.error(`[${new Date().toISOString()}] Unhandled error:`, err);
 
+  // Handle JSON parse errors (e.g. malformed JSON or submitting JSON text to file route)
+  if (err instanceof SyntaxError && "body" in err) {
+    res.status(400).json({
+      error: "Bad Request",
+      message: "Invalid JSON format. For file uploads, select 'Form' / 'Form-data' (multipart/form-data) instead of JSON.",
+    });
+    return;
+  }
+
   res.status(500).json({
     error: "Internal Server Error",
-    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+    message: err?.message || "An unexpected error occurred",
   });
 };

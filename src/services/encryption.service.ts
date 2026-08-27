@@ -132,3 +132,57 @@ export function decryptData(raw: string | EncryptedBlob | unknown): string {
 
   return decrypted.toString("utf8");
 }
+
+// ─── Binary Buffer Encryption (for Supabase Storage Files) ────────────────────
+
+/**
+ * Encrypts a raw binary Buffer (e.g. file/photo uploaded by user) using AES-256-GCM.
+ * Packed format: [1-byte VERSION][12-byte IV][16-byte AUTH_TAG][CIPHERTEXT]
+ */
+export function encryptBuffer(inputBuffer: Buffer): Buffer {
+  const version = currentKeyVersion();
+  const key = resolveKey(version);
+
+  const iv = randomBytes(IV_LENGTH); // 12 bytes
+  const cipher = createCipheriv(ALGORITHM, key, iv, {
+    authTagLength: TAG_LENGTH,
+  });
+
+  const encrypted = Buffer.concat([
+    cipher.update(inputBuffer),
+    cipher.final(),
+  ]);
+
+  const tag = cipher.getAuthTag(); // 16 bytes
+  const versionBuf = Buffer.from([version]); // 1 byte
+
+  return Buffer.concat([versionBuf, iv, tag, encrypted]);
+}
+
+/**
+ * Decrypts a binary Buffer packed by `encryptBuffer`.
+ * Expected input format: [1-byte VERSION][12-byte IV][16-byte AUTH_TAG][CIPHERTEXT]
+ */
+export function decryptBuffer(packed: Buffer): Buffer {
+  const HEADER_SIZE = 1 + IV_LENGTH + TAG_LENGTH; // 1 + 12 + 16 = 29 bytes
+  if (packed.length < HEADER_SIZE) {
+    throw new Error("Encrypted buffer is too short to contain header information");
+  }
+
+  const version = packed.readUInt8(0);
+  const key = resolveKey(version);
+
+  const iv = packed.subarray(1, 1 + IV_LENGTH);
+  const tag = packed.subarray(1 + IV_LENGTH, HEADER_SIZE);
+  const ciphertext = packed.subarray(HEADER_SIZE);
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv, {
+    authTagLength: TAG_LENGTH,
+  });
+  decipher.setAuthTag(tag);
+
+  return Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(), // throws if tampered
+  ]);
+}
