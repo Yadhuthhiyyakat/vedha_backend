@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import {
   getMyDocuments,
+  getCategories,
   getDocument,
   decryptDocument,
   createDocument,
@@ -23,7 +24,10 @@ const router = Router();
 // All document routes require authentication
 router.use(requireAuth);
 
-// GET    /api/documents                    — list all owned documents (metadata only)
+// GET    /api/documents/categories         — list available document category taxonomy
+router.get("/categories", getCategories);
+
+// GET    /api/documents                    — list all owned documents (supports ?category=&subcategory= filter)
 router.get("/", getMyDocuments);
 
 // GET    /api/documents/:docId/decrypt     — decrypt and return document_data JSON

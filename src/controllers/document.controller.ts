@@ -8,10 +8,12 @@ import {
   decryptBuffer,
 } from "../services/encryption.service.js";
 
+import { DOCUMENT_CATEGORIES } from "../config/categories.js";
+
 // ─── Column sets ──────────────────────────────────────────────────────────────
 // Never expose raw document_data (encrypted blob) in list / detail meta views
 const DOCUMENT_META_COLUMNS =
-  "id, owner_id, title, type, status, created_at";
+  "id, owner_id, title, type, category, subcategory, status, created_at";
 
 const STORAGE_BUCKET = "documents";
 
@@ -27,18 +29,69 @@ async function ensureBucket() {
   }
 }
 
+// ─── GET /api/documents/categories ──────────────────────────────────────────
+export const getCategories = async (
+  _req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { data: categories, error } = await supabaseAdmin
+      .from("document_categories")
+      .select("id, name, description, document_subcategories (id, name, description, required_fields)");
+
+    if (!error && categories && categories.length > 0) {
+      const formatted = categories.map((cat: {
+        id: string;
+        name: string;
+        description: string;
+        document_subcategories?: Array<{
+          id: string;
+          name: string;
+          description?: string;
+          required_fields?: string[];
+        }>;
+      }) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        subcategories: cat.document_subcategories || [],
+      }));
+      res.json({ categories: formatted });
+      return;
+    }
+  } catch (err) {
+    console.warn("[getCategories] Falling back to static category config:", err);
+  }
+
+  // Fallback to static category config if DB tables are empty
+  res.json({ categories: DOCUMENT_CATEGORIES });
+};
+
 // ─── GET /api/documents ───────────────────────────────────────────────────────
 export const getMyDocuments = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   const userId = req.user!.id;
+  const { category, subcategory } = req.query as {
+    category?: string;
+    subcategory?: string;
+  };
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("documents")
     .select(DOCUMENT_META_COLUMNS)
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
+
+  if (category) {
+    query = query.eq("category", category);
+  }
+  if (subcategory) {
+    query = query.eq("subcategory", subcategory);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     res.status(500).json({ error: error.message });
@@ -81,7 +134,7 @@ export const decryptDocument = async (
 
   const { data, error } = await supabaseAdmin
     .from("documents")
-    .select("id, owner_id, document_data, title, type, status")
+    .select("id, owner_id, document_data, title, type, category, subcategory, status")
     .eq("id", docId)
     .eq("owner_id", userId)
     .single();
@@ -104,6 +157,8 @@ export const decryptDocument = async (
       id: data.id,
       title: data.title,
       type: data.type,
+      category: data.category ?? "other",
+      subcategory: data.subcategory ?? "other",
       status: data.status,
       document_data,
     });
@@ -121,9 +176,11 @@ export const createDocument = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user!.id;
-  const { title, type, document_data } = req.body as {
+  const { title, type, category, subcategory, document_data } = req.body as {
     title: string;
     type: string;
+    category?: string;
+    subcategory?: string;
     document_data?: Record<string, unknown>;
   };
 
@@ -146,6 +203,8 @@ export const createDocument = async (
       owner_id: userId,
       title,
       type,
+      category: category || "other",
+      subcategory: subcategory || "other",
       document_data: encryptedPayload,
       status: "pending",
     })
@@ -174,7 +233,12 @@ export const uploadDocumentFile = async (
     return;
   }
 
-  const { title, type } = req.body as { title: string; type: string };
+  const { title, type, category, subcategory } = req.body as {
+    title: string;
+    type: string;
+    category?: string;
+    subcategory?: string;
+  };
   if (!title || !type) {
     res.status(400).json({ error: "title and type form fields are required" });
     return;
@@ -234,6 +298,8 @@ export const uploadDocumentFile = async (
         owner_id: userId,
         title,
         type,
+        category: category || "other",
+        subcategory: subcategory || "other",
         document_data: encryptedDataPayload,
         status: "pending",
       })

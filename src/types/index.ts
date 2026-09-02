@@ -13,6 +13,8 @@ export interface Document {
   owner_id: string;
   title: string;
   type: string;
+  category?: string;
+  subcategory?: string;
   /** Encrypted AES-256-GCM blob string (or JSON object) stored in document_data column. Use GET /decrypt to retrieve decrypted data. */
   document_data?: string | Record<string, unknown> | null;
   status: "verified" | "pending" | "rejected";
