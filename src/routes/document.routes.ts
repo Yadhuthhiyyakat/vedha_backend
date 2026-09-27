@@ -9,10 +9,19 @@ import {
   uploadDocumentFile,
   downloadDocumentFile,
   deleteDocument,
+  updateDocument,
 } from "../controllers/document.controller.js";
+import {
+  autoVerifyDocument,
+  updateDocumentStatus,
+} from "../controllers/verification.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
-import { createDocumentSchema } from "../validators/index.js";
+import {
+  createDocumentSchema,
+  updateDocumentSchema,
+  updateDocumentStatusSchema,
+} from "../validators/index.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -44,6 +53,16 @@ router.post("/upload", upload.single("file"), uploadDocumentFile);
 
 // POST   /api/documents                    — create document with JSON payload (encrypted)
 router.post("/", validate(createDocumentSchema), createDocument);
+
+// POST   /api/documents/:docId/verify      — run automated algorithmic verification
+router.post("/:docId/verify", autoVerifyDocument);
+
+// PATCH  /api/documents/:docId/status      — institutional / admin status update with notes
+router.patch("/:docId/status", validate(updateDocumentStatusSchema), updateDocumentStatus);
+
+// PATCH  /api/documents/:docId             — edit an owned document (title, type, category, subcategory, expiry_date, document_data)
+router.patch("/:docId", validate(updateDocumentSchema), updateDocument);
+router.put("/:docId", validate(updateDocumentSchema), updateDocument);
 
 // DELETE /api/documents/:docId             — delete an owned document and bucket file
 router.delete("/:docId", deleteDocument);

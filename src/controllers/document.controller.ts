@@ -9,11 +9,12 @@ import {
 } from "../services/encryption.service.js";
 
 import { DOCUMENT_CATEGORIES } from "../config/categories.js";
+import { calculateFileHash } from "../services/algorithmicVerification.service.js";
 
 // ─── Column sets ──────────────────────────────────────────────────────────────
 // Never expose raw document_data (encrypted blob) in list / detail meta views
 const DOCUMENT_META_COLUMNS =
-  "id, owner_id, title, type, category, subcategory, status, created_at";
+  "id, owner_id, title, type, category, subcategory, status, expiry_date, created_at, updated_at";
 
 const STORAGE_BUCKET = "documents";
 
@@ -176,11 +177,12 @@ export const createDocument = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user!.id;
-  const { title, type, category, subcategory, document_data } = req.body as {
+  const { title, type, category, subcategory, expiry_date, document_data } = req.body as {
     title: string;
     type: string;
     category?: string;
     subcategory?: string;
+    expiry_date?: string | null;
     document_data?: Record<string, unknown>;
   };
 
@@ -206,6 +208,7 @@ export const createDocument = async (
       category: category || "other",
       subcategory: subcategory || "other",
       document_data: encryptedPayload,
+      expiry_date: expiry_date ? new Date(expiry_date).toISOString() : null,
       status: "pending",
     })
     .select(DOCUMENT_META_COLUMNS)
@@ -286,10 +289,24 @@ export const uploadDocumentFile = async (
       file_name: file.originalname,
       mime_type: file.mimetype,
       size: file.size,
+      sha256: calculateFileHash(file.buffer),
       ...additionalData,
     };
 
     const encryptedDataPayload = encryptData(JSON.stringify(fileMetadata));
+
+    // Parse optional expiry_date from multipart form body
+    let parsedExpiryDate: string | null = null;
+    if (req.body.expiry_date) {
+      try {
+        const d = new Date(req.body.expiry_date);
+        if (!isNaN(d.getTime())) {
+          parsedExpiryDate = d.toISOString();
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
 
     // 6. Insert document record in database
     const { data, error } = await supabaseAdmin
@@ -301,6 +318,7 @@ export const uploadDocumentFile = async (
         category: category || "other",
         subcategory: subcategory || "other",
         document_data: encryptedDataPayload,
+        expiry_date: parsedExpiryDate,
         status: "pending",
       })
       .select(DOCUMENT_META_COLUMNS)
@@ -434,3 +452,75 @@ export const deleteDocument = async (
 
   res.status(204).send();
 };
+
+// ─── PATCH /api/documents/:docId ─────────────────────────────────────────────
+// Allows document owner to edit document details (title, type, category, subcategory, expiry_date, document_data)
+export const updateDocument = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user!.id;
+  const { docId } = req.params as { docId: string };
+  const { title, type, category, subcategory, expiry_date, document_data } = req.body as {
+    title?: string;
+    type?: string;
+    category?: string;
+    subcategory?: string;
+    expiry_date?: string | null;
+    document_data?: Record<string, unknown>;
+  };
+
+  // Confirm ownership
+  const { data: existing, error: findErr } = await supabaseAdmin
+    .from("documents")
+    .select("id, owner_id, document_data")
+    .eq("id", docId)
+    .eq("owner_id", userId)
+    .single();
+
+  if (findErr || !existing) {
+    res.status(404).json({ error: "Document not found or access denied" });
+    return;
+  }
+
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (title !== undefined) updates.title = title;
+  if (type !== undefined) updates.type = type;
+  if (category !== undefined) updates.category = category;
+  if (subcategory !== undefined) updates.subcategory = subcategory;
+
+  if (expiry_date !== undefined) {
+    updates.expiry_date = expiry_date ? new Date(expiry_date).toISOString() : null;
+  }
+
+  if (document_data !== undefined) {
+    try {
+      updates.document_data = encryptData(JSON.stringify(document_data));
+    } catch (err) {
+      console.error("[updateDocument] encryption error:", err);
+      res.status(500).json({ error: "Failed to encrypt updated document data" });
+      return;
+    }
+  }
+
+  const { data: updatedDoc, error: updateErr } = await supabaseAdmin
+    .from("documents")
+    .update(updates)
+    .eq("id", docId)
+    .select(DOCUMENT_META_COLUMNS)
+    .single();
+
+  if (updateErr) {
+    res.status(500).json({ error: updateErr.message });
+    return;
+  }
+
+  res.json({
+    message: "Document updated successfully",
+    document: updatedDoc,
+  });
+};
+
