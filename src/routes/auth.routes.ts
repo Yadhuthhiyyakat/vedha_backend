@@ -8,6 +8,8 @@ import {
   deleteAccount,
   forgotPassword,
   resetPassword,
+  generatePairingToken,
+  exchangePairingToken,
 } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
@@ -44,6 +46,12 @@ router.get("/me", requireAuth, me);
 
 // DELETE /api/auth/delete        — requires valid access_token; deletes user account
 router.delete("/delete", requireAuth, deleteAccount);
+
+// POST /api/auth/pair-token      — requires valid access_token; generates pairing QR token
+router.post("/pair-token", requireAuth, generatePairingToken);
+
+// POST /api/auth/pair-exchange   — public: mobile app exchanges token to connect
+router.post("/pair-exchange", exchangePairingToken);
 
 export default router;
 
