@@ -29,7 +29,7 @@ export const createConsentRequest = async (
   const userId = targetDoc?.owner_id || req.user!.id;
   const docTitle = targetDoc?.title || "Educational / Identity Certificate";
 
-  const request = ConsentService.createRequest({
+  const request = await ConsentService.createRequest({
     userId,
     userEmail: user_email || req.user?.email || "user@veda.app",
     documentId: document_id || (targetDoc?.id ?? "doc-default"),
@@ -48,7 +48,7 @@ export const getPendingConsentRequests = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user!.id;
-  const requests = ConsentService.getPendingRequestsForUser(userId);
+  const requests = await ConsentService.getPendingRequestsForUser(userId);
   res.json({ requests, count: requests.length });
 };
 
@@ -57,7 +57,7 @@ export const getConsentStatus = async (
   res: Response
 ): Promise<void> => {
   const { requestId } = req.params as { requestId: string };
-  const request = ConsentService.getConsentRequest(requestId);
+  const request = await ConsentService.getConsentRequest(requestId);
   if (!request) {
     res.status(404).json({ error: "Consent request not found" });
     return;
@@ -82,7 +82,7 @@ export const respondToConsentRequest = async (
     return;
   }
 
-  const updated = ConsentService.respondToRequest({
+  const updated = await ConsentService.respondToRequest({
     userId,
     requestId,
     action,

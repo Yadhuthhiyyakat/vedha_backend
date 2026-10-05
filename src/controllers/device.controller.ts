@@ -7,7 +7,7 @@ export const getLinkedDevices = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user!.id;
-  const devices = DeviceService.getDevicesForUser(userId);
+  const devices = await DeviceService.getDevicesForUser(userId);
   res.json({
     devices,
     total: devices.length,
@@ -22,7 +22,7 @@ export const revokeDevice = async (
   const userId = req.user!.id;
   const { deviceId } = req.params as { deviceId: string };
 
-  const success = DeviceService.revokeDevice(userId, deviceId);
+  const success = await DeviceService.revokeDevice(userId, deviceId);
   if (!success) {
     res.status(404).json({ error: "Device not found" });
     return;
