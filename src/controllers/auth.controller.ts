@@ -1,3 +1,4 @@
+import { DeviceService } from "../services/device.service.js";
 import { Request, Response } from "express";
 import crypto from "crypto";
 import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
@@ -260,7 +261,13 @@ export const exchangePairingToken = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { pair_token, token } = req.body as { pair_token?: string; token?: string };
+  const { pair_token, token, device_name, device_id, platform } = req.body as {
+    pair_token?: string;
+    token?: string;
+    device_name?: string;
+    device_id?: string;
+    platform?: string;
+  };
   const actualToken = pair_token || token;
 
   if (!actualToken || !pairingTokens.has(actualToken)) {
@@ -304,6 +311,13 @@ export const exchangePairingToken = async (
 
     const { access_token, refresh_token, expires_in } = sessionData.session;
 
+    const linkedDevice = DeviceService.registerDevice({
+      userId: record.userId,
+      deviceName: device_name || "Android Mobile Wallet",
+      deviceId: device_id,
+      platform: platform || "android",
+    });
+
     res.json({
       message: "Device paired successfully",
       access_token,
@@ -316,6 +330,7 @@ export const exchangePairingToken = async (
         id: record.userId,
         email: record.email,
       },
+      device: linkedDevice,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to pair device" });

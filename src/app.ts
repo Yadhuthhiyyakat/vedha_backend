@@ -7,6 +7,8 @@ import documentRoutes from "./routes/document.routes.js";
 import tokenRoutes from "./routes/token.routes.js";
 import logRoutes from "./routes/log.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import deviceRoutes from "./routes/device.routes.js";
+import consentRoutes from "./routes/consent.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -38,6 +40,8 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/tokens", tokenRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/devices", deviceRoutes);
+app.use("/api/consent", consentRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
