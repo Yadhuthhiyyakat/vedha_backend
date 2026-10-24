@@ -213,8 +213,15 @@ export function verifyDocumentData(
   const sub = subcategory.toLowerCase();
 
   switch (sub) {
+    case "aadhaar":
     case "aadhar": {
-      const aadhaarNum = (documentData["aadhar_number"] ?? documentData["id_number"]) as string | undefined;
+      const aadhaarNum = (
+        documentData["aadhaar_number"] ??
+        documentData["aadhar_number"] ??
+        documentData["document_number"] ??
+        documentData["id_number"] ??
+        documentData["number"]
+      ) as string | undefined;
       if (!aadhaarNum) {
         errors.push("Missing 'aadhar_number' field in document data");
       } else {
@@ -229,8 +236,14 @@ export function verifyDocumentData(
       break;
     }
 
+    case "pan":
     case "pan_card": {
-      const panNum = (documentData["pan_number"] ?? documentData["id_number"]) as string | undefined;
+      const panNum = (
+        documentData["pan_number"] ??
+        documentData["panNumber"] ??
+        documentData["document_number"] ??
+        documentData["id_number"]
+      ) as string | undefined;
       if (!panNum) {
         errors.push("Missing 'pan_number' field in document data");
       } else {
@@ -245,8 +258,16 @@ export function verifyDocumentData(
       break;
     }
 
+    case "dl":
+    case "driving_licence":
     case "driving_license": {
-      const dlNum = (documentData["dl_number"] ?? documentData["id_number"]) as string | undefined;
+      const dlNum = (
+        documentData["dl_number"] ??
+        documentData["dlNumber"] ??
+        documentData["license_number"] ??
+        documentData["document_number"] ??
+        documentData["id_number"]
+      ) as string | undefined;
       if (!dlNum) {
         errors.push("Missing 'dl_number' field in document data");
       } else {
@@ -278,8 +299,16 @@ export function verifyDocumentData(
       break;
     }
 
+    case "voter":
+    case "epic":
     case "voter_id": {
-      const epicNum = (documentData["epic_number"] ?? documentData["id_number"]) as string | undefined;
+      const epicNum = (
+        documentData["epic_number"] ??
+        documentData["voter_id"] ??
+        documentData["voterId"] ??
+        documentData["document_number"] ??
+        documentData["id_number"]
+      ) as string | undefined;
       if (!epicNum) {
         errors.push("Missing 'epic_number' field in document data");
       } else {

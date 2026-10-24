@@ -39,6 +39,11 @@ export const autoVerifyDocument = async (
     }
   }
 
+  // Merge client-supplied document data if sent in request body
+  if (req.body && (req.body.document_data || req.body.data)) {
+    parsedData = { ...parsedData, ...(req.body.document_data || req.body.data) };
+  }
+
   // Fetch user profile name to cross-check surname / initials
   const { data: profile } = await supabaseAdmin
     .from("profiles")
