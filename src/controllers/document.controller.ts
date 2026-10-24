@@ -10,6 +10,7 @@ import {
 
 import { DOCUMENT_CATEGORIES } from "../config/categories.js";
 import { calculateFileHash } from "../services/algorithmicVerification.service.js";
+import { inspectDocumentAuthenticity } from "../services/documentAuthenticity.service.js";
 
 // ─── Column sets ──────────────────────────────────────────────────────────────
 // Never expose raw document_data (encrypted blob) in list / detail meta views
@@ -248,6 +249,18 @@ export const uploadDocumentFile = async (
   }
 
   await ensureBucket();
+
+  // 0. Inspect physical & digital document authenticity
+  const subcategory = req.body.subcategory || req.body.category || "general";
+  const authCheck = inspectDocumentAuthenticity(file.buffer, file.mimetype, subcategory);
+  if (!authCheck.isAuthentic && authCheck.reasons.length > 0) {
+    res.status(422).json({
+      error: "Document authenticity validation failed",
+      reasons: authCheck.reasons,
+      checksPassed: authCheck.checksPassed,
+    });
+    return;
+  }
 
   try {
     // 1. Encrypt the raw file buffer with AES-256-GCM
