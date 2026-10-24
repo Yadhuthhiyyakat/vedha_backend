@@ -251,8 +251,8 @@ export const uploadDocumentFile = async (
   await ensureBucket();
 
   // 0. Inspect physical & digital document authenticity
-  const subcategory = req.body.subcategory || req.body.category || "general";
-  const authCheck = inspectDocumentAuthenticity(file.buffer, file.mimetype, subcategory);
+  const targetSubcategory = subcategory || category || "general";
+  const authCheck = inspectDocumentAuthenticity(file.buffer, file.mimetype, targetSubcategory);
   if (!authCheck.isAuthentic && authCheck.reasons.length > 0) {
     res.status(422).json({
       error: "Document authenticity validation failed",
