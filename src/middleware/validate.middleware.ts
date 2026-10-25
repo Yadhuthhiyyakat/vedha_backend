@@ -24,9 +24,27 @@ export const validate =
     if (source === "body") {
       req.body = result.data;
     } else if (source === "query") {
-      req.query = result.data as any;
+      try {
+        (req as any).query = result.data;
+      } catch {
+        Object.defineProperty(req, "query", {
+          value: result.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
+      }
     } else if (source === "params") {
-      req.params = result.data as any;
+      try {
+        (req as any).params = result.data;
+      } catch {
+        Object.defineProperty(req, "params", {
+          value: result.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
+      }
     }
     next();
   };
