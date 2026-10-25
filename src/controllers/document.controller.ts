@@ -11,6 +11,21 @@ import {
 import { DOCUMENT_CATEGORIES } from "../config/categories.js";
 import { calculateFileHash } from "../services/algorithmicVerification.service.js";
 import { inspectDocumentAuthenticity } from "../services/documentAuthenticity.service.js";
+import { checkAndGenerateExpiryNotifications } from "../services/notification.service.js";
+
+// Helper to parse dates supporting ISO, YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY
+function parseFlexibleDate(val?: string | null): string | null {
+  if (!val) return null;
+  const trimmed = val.trim();
+  const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    const iso = new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00Z`);
+    if (!isNaN(iso.getTime())) return iso.toISOString();
+  }
+  const standard = new Date(trimmed);
+  return isNaN(standard.getTime()) ? null : standard.toISOString();
+}
 
 // ─── Column sets ──────────────────────────────────────────────────────────────
 // Never expose raw document_data (encrypted blob) in list / detail meta views
@@ -209,7 +224,7 @@ export const createDocument = async (
       category: category || "other",
       subcategory: subcategory || "other",
       document_data: encryptedPayload,
-      expiry_date: expiry_date ? new Date(expiry_date).toISOString() : null,
+      expiry_date: parseFlexibleDate(expiry_date),
       status: "pending",
     })
     .select(DOCUMENT_META_COLUMNS)
@@ -218,6 +233,12 @@ export const createDocument = async (
   if (error) {
     res.status(400).json({ error: error.message });
     return;
+  }
+
+  if (data && data.expiry_date) {
+    checkAndGenerateExpiryNotifications(userId).catch((err) => {
+      console.error("[createDocument] Expiry check trigger error:", err);
+    });
   }
 
   res.status(201).json(data);
@@ -308,18 +329,8 @@ export const uploadDocumentFile = async (
 
     const encryptedDataPayload = encryptData(JSON.stringify(fileMetadata));
 
-    // Parse optional expiry_date from multipart form body
-    let parsedExpiryDate: string | null = null;
-    if (req.body.expiry_date) {
-      try {
-        const d = new Date(req.body.expiry_date);
-        if (!isNaN(d.getTime())) {
-          parsedExpiryDate = d.toISOString();
-        }
-      } catch {
-        // ignore parse error
-      }
-    }
+    // Parse optional expiry_date from multipart form body (supports DD-MM-YYYY, YYYY-MM-DD, etc)
+    const parsedExpiryDate = parseFlexibleDate(req.body.expiry_date);
 
     // 6. Insert document record in database
     const { data, error } = await supabaseAdmin
@@ -340,6 +351,12 @@ export const uploadDocumentFile = async (
     if (error) {
       res.status(400).json({ error: error.message });
       return;
+    }
+
+    if (data && data.expiry_date) {
+      checkAndGenerateExpiryNotifications(userId).catch((err) => {
+        console.error("[uploadDocumentFile] Expiry check trigger error:", err);
+      });
     }
 
     res.status(201).json(data);
