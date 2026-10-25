@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Response } from "express";
 import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { supabaseAdmin } from "../config/supabase.js";
@@ -109,8 +110,11 @@ export const updateDocumentStatus = async (
 ): Promise<void> => {
   const verifierId = req.user!.id;
   const { docId } = req.params as { docId: string };
-  const { status, notes } = req.body as {
+  const { status, notes, decision, institution_name, institution_type } = req.body as {
     status: "verified" | "pending" | "rejected";
+    decision?: "genuine" | "fraudulent";
+    institution_name?: string;
+    institution_type?: string;
     notes?: string;
   };
 
@@ -126,30 +130,85 @@ export const updateDocumentStatus = async (
     return;
   }
 
-  // Update document status
-  const { data: updatedDoc, error: updateErr } = await supabaseAdmin
+  const isGenuine = decision !== "fraudulent" && status === "verified";
+  const finalStatus = isGenuine ? "verified" : (decision === "fraudulent" ? "rejected" : status);
+  const typeTag = (institution_type || doc.category || "ORG").slice(0, 4).toUpperCase();
+  const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+  const sealId = isGenuine ? `VDA-${typeTag}-${randomSuffix}` : `VDA-FORGED-${randomSuffix}`;
+
+  const verificationSeal = {
+    seal_id: sealId,
+    is_genuine: isGenuine,
+    status: finalStatus,
+    verifier_id: verifierId,
+    verifier_name: institution_name || "Authorized Institution",
+    institution_type: institution_type || doc.category || "institution",
+    verified_at: new Date().toISOString(),
+    notes: notes || (isGenuine ? "Officially verified and sealed" : "Flagged as not genuine by issuing institution"),
+  };
+
+  // Attempt update with verification_seal column, with graceful fallback if column not yet migrated
+  let updatedDoc: any = null;
+  const { data: fullUpdate, error: fullUpdateErr } = await supabaseAdmin
     .from("documents")
-    .update({ status })
+    .update({
+      status: finalStatus,
+      verification_seal: verificationSeal,
+    })
     .eq("id", docId)
-    .select("id, title, category, subcategory, status, created_at")
+    .select()
     .single();
 
-  if (updateErr) {
-    res.status(500).json({ error: `Failed to update status: ${updateErr.message}` });
-    return;
+  if (!fullUpdateErr && fullUpdate) {
+    updatedDoc = fullUpdate;
+  } else {
+    // Fallback if column does not exist yet in schema
+    const { data: basicUpdate, error: basicErr } = await supabaseAdmin
+      .from("documents")
+      .update({ status: finalStatus })
+      .eq("id", docId)
+      .select()
+      .single();
+
+    if (basicErr) {
+      res.status(500).json({ error: `Failed to update status: ${basicErr.message}` });
+      return;
+    }
+    updatedDoc = { ...basicUpdate, verification_seal: verificationSeal };
   }
 
   // Record verifier action in verification_logs
-  const logStatus = status === "verified" ? "success" : status === "rejected" ? "failed" : "pending";
+  const logStatus = isGenuine ? "success" : "failed";
   await supabaseAdmin.from("verification_logs").insert({
     document_id: docId,
     verifier_id: verifierId,
     status: logStatus,
   });
 
+  // Send automated Smart Notification to document owner
+  await supabaseAdmin.from("notifications").insert({
+    user_id: doc.owner_id,
+    document_id: doc.id,
+    type: isGenuine ? "verification_status" : "document_expired",
+    title: isGenuine
+      ? `${doc.title} Verified by ${verificationSeal.verifier_name}`
+      : `Security Alert: ${doc.title} Flagged as Not Genuine`,
+    message: isGenuine
+      ? `Your credential '${doc.title}' has been officially verified by ${verificationSeal.verifier_name}. Digital Seal: #${sealId}.`
+      : `Your credential '${doc.title}' was examined by ${verificationSeal.verifier_name} and flagged as counterfeit. Reason: ${verificationSeal.notes}.`,
+    severity: isGenuine ? "info" : "critical",
+    status: "unread",
+    metadata: {
+      milestone: isGenuine ? "verified" : "forged",
+      document_title: doc.title,
+      seal_id: sealId,
+      verifier_name: verificationSeal.verifier_name,
+    },
+  });
+
   res.json({
-    message: `Document status updated to '${status}'`,
+    message: isGenuine ? `Document verified and sealed (#${sealId})` : `Document flagged as not genuine (#${sealId})`,
     document: updatedDoc,
-    notes: notes ?? null,
+    verification_seal: verificationSeal,
   });
 };

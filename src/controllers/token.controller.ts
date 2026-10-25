@@ -182,6 +182,7 @@ export const verifyToken = async (
     valid: true,
     expires_at: tokenRow.expires_at,
     document: exposedData,
+    verification_seal: document.verification_seal || null,
   };
 
   if (allowFileShare) {

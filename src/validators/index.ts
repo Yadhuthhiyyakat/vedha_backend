@@ -37,6 +37,9 @@ export const updateDocumentSchema = z.object({
 
 export const updateDocumentStatusSchema = z.object({
   status: z.enum(["verified", "pending", "rejected"]),
+  decision: z.enum(["genuine", "fraudulent"]).optional(),
+  institution_name: z.string().max(120).optional(),
+  institution_type: z.string().max(50).optional(),
   notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
 });
 
