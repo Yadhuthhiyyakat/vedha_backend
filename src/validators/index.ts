@@ -55,6 +55,7 @@ export const createTokenSchema = z.object({
     .int()
     .min(1)
     .max(1440) // max 24 hours
-    .default(10),
-  shared_fields: z.array(z.string()).optional(),
+    .default(10)
+    .optional(),
+  shared_fields: z.array(z.string()).nullable().optional(),
 });

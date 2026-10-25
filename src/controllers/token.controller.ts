@@ -150,7 +150,7 @@ export const getTokensForDocument = async (
 
   const { data, error } = await supabaseAdmin
     .from("verification_tokens")
-    .select("id, token, expires_at, shared_fields, created_at")
+    .select("id, document_id, token, expires_at, shared_fields, created_at")
     .eq("document_id", document_id)
     .order("created_at", { ascending: false });
 
