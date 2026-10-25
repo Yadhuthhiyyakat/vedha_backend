@@ -28,15 +28,37 @@ const SUBCATEGORY_RULES: Record<string, SubcategoryRule> = {
   // ── Government Documents ────────────────────────────────
   aadhar: {
     name: "Aadhaar Card",
-    authorityKeywords: ["UNIQUE IDENTIFICATION", "UIDAI", "GOVERNMENT OF INDIA", "GOVT OF INDIA", "GOVT. OF INDIA", "BHARAT SARKAR", "MERA AADHAAR"],
-    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR"],
+    authorityKeywords: [
+      "UNIQUE IDENTIFICATION",
+      "UIDAI",
+      "GOVERNMENT OF INDIA",
+      "GOVT OF INDIA",
+      "GOVT. OF INDIA",
+      "BHARAT SARKAR",
+      "AUTHORITY OF INDIA",
+      "OVERNMENT OF INDIA",
+      "OF INDIA",
+      "MERA AADHAAR",
+    ],
+    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR", "YOUR AADHAAR"],
     patterns: [/\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b/, /[X*\u2022]{4}\s?[X*\u2022]{4}\s?[0-9]{4}/i],
     rejectionMessage: "Uploaded file is not a genuine Aadhaar card. Must contain official UIDAI/Government of India seals AND an Aadhaar number.",
   },
   aadhaar: {
     name: "Aadhaar Card",
-    authorityKeywords: ["UNIQUE IDENTIFICATION", "UIDAI", "GOVERNMENT OF INDIA", "GOVT OF INDIA", "GOVT. OF INDIA", "BHARAT SARKAR", "MERA AADHAAR"],
-    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR"],
+    authorityKeywords: [
+      "UNIQUE IDENTIFICATION",
+      "UIDAI",
+      "GOVERNMENT OF INDIA",
+      "GOVT OF INDIA",
+      "GOVT. OF INDIA",
+      "BHARAT SARKAR",
+      "AUTHORITY OF INDIA",
+      "OVERNMENT OF INDIA",
+      "OF INDIA",
+      "MERA AADHAAR",
+    ],
+    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR", "YOUR AADHAAR"],
     patterns: [/\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b/, /[X*\u2022]{4}\s?[X*\u2022]{4}\s?[0-9]{4}/i],
     rejectionMessage: "Uploaded file is not a genuine Aadhaar card. Must contain official UIDAI/Government of India seals AND an Aadhaar number.",
   },
@@ -350,8 +372,13 @@ export async function inspectDocumentAuthenticity(
         const hasDoc = rule.documentKeywords.some((kw) => rawText.includes(kw));
         const hasPat = rule.patterns?.some((pat) => pat.test(rawText));
 
-        // Enforce POSITIVE PROOF: must have Authority Anchor AND Document Identifier/Pattern
-        const passed = hasAuth && (hasDoc || hasPat);
+        // Demographics anchor: real identity cards with laminate glare often have recognizable DOB/Gender pairs
+        const hasDemographics =
+          (rawText.includes("DOB") || rawText.includes("YEAR OF BIRTH") || rawText.includes("DATE OF BIRTH")) &&
+          (rawText.includes("MALE") || rawText.includes("FEMALE") || rawText.includes("PIN CODE") || rawText.includes("DISTRICT"));
+
+        // Enforce POSITIVE PROOF: must have Document Identifier/Pattern AND (Authority Anchor OR Demographics)
+        const passed = (hasDoc || hasPat) && (hasAuth || hasDemographics);
 
         if (!passed) {
           reasons.push(rule.rejectionMessage);
