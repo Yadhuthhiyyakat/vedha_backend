@@ -18,7 +18,8 @@ export interface AuthenticityCheckResult {
 
 interface SubcategoryRule {
   name: string;
-  keywords: string[];
+  authorityKeywords: string[];
+  documentKeywords: string[];
   patterns?: RegExp[];
   rejectionMessage: string;
 }
@@ -27,179 +28,214 @@ const SUBCATEGORY_RULES: Record<string, SubcategoryRule> = {
   // ── Government Documents ────────────────────────────────
   aadhar: {
     name: "Aadhaar Card",
-    keywords: ["UIDAI", "AADHAAR", "GOVERNMENT OF INDIA", "BHARAT SARKAR", "UNIQUE IDENTIFICATION", "DOB", "YEAR OF BIRTH", "ENROLMENT", "HELP@UIDAI"],
+    authorityKeywords: ["UNIQUE IDENTIFICATION", "UIDAI", "GOVERNMENT OF INDIA", "BHARAT SARKAR"],
+    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR"],
     patterns: [/\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Aadhaar card. Missing UIDAI, Government of India seals, or 12-digit Aadhaar number.",
+    rejectionMessage: "Uploaded file is not a genuine Aadhaar card. Must contain official UIDAI/Government of India seals AND a 12-digit Aadhaar number.",
   },
   aadhaar: {
     name: "Aadhaar Card",
-    keywords: ["UIDAI", "AADHAAR", "GOVERNMENT OF INDIA", "BHARAT SARKAR", "UNIQUE IDENTIFICATION", "DOB", "YEAR OF BIRTH", "ENROLMENT", "HELP@UIDAI"],
+    authorityKeywords: ["UNIQUE IDENTIFICATION", "UIDAI", "GOVERNMENT OF INDIA", "BHARAT SARKAR"],
+    documentKeywords: ["AADHAAR", "AADHAR", "MERAAADHAAR"],
     patterns: [/\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Aadhaar card. Missing UIDAI, Government of India seals, or 12-digit Aadhaar number.",
+    rejectionMessage: "Uploaded file is not a genuine Aadhaar card. Must contain official UIDAI/Government of India seals AND a 12-digit Aadhaar number.",
   },
   pan: {
     name: "PAN Card",
-    keywords: ["INCOME TAX", "GOVT. OF INDIA", "PERMANENT ACCOUNT", "INCOMETAX", "FATHER", "SIGNATURE"],
+    authorityKeywords: ["INCOME TAX DEPARTMENT", "GOVT. OF INDIA", "INCOMETAX", "CENTRAL BOARD OF DIRECT TAXES"],
+    documentKeywords: ["PERMANENT ACCOUNT", "PAN"],
     patterns: [/\b[A-Z]{5}[0-9]{4}[A-Z]\b/],
-    rejectionMessage: "Uploaded file does not appear to be a PAN card. Missing Income Tax Department markers or 10-character PAN number.",
+    rejectionMessage: "Uploaded file is not a genuine PAN card. Must contain Income Tax Department authority header AND Permanent Account Number.",
   },
   pan_card: {
     name: "PAN Card",
-    keywords: ["INCOME TAX", "GOVT. OF INDIA", "PERMANENT ACCOUNT", "INCOMETAX", "FATHER", "SIGNATURE"],
+    authorityKeywords: ["INCOME TAX DEPARTMENT", "GOVT. OF INDIA", "INCOMETAX", "CENTRAL BOARD OF DIRECT TAXES"],
+    documentKeywords: ["PERMANENT ACCOUNT", "PAN"],
     patterns: [/\b[A-Z]{5}[0-9]{4}[A-Z]\b/],
-    rejectionMessage: "Uploaded file does not appear to be a PAN card. Missing Income Tax Department markers or 10-character PAN number.",
+    rejectionMessage: "Uploaded file is not a genuine PAN card. Must contain Income Tax Department authority header AND Permanent Account Number.",
   },
   driving_license: {
     name: "Driving License",
-    keywords: ["DRIVING", "LICENCE", "LICENSE", "UNION OF INDIA", "TRANSPORT", "MOTOR VEHICLE", "AUTHORISATION", "FORM 7", "PARIVAHAN", "SARATHI"],
-    rejectionMessage: "Uploaded file does not appear to be a Driving License. Missing transport department or licensing authority markers.",
+    authorityKeywords: ["UNION OF INDIA", "TRANSPORT DEPARTMENT", "MOTOR VEHICLES", "PARIVAHAN", "SARATHI", "GOVERNMENT OF"],
+    documentKeywords: ["DRIVING LICENCE", "DRIVING LICENSE", "FORM 7", "DL NO"],
+    patterns: [/\b[A-Z]{2}[0-9]{2}[0-9]{4}[0-9]{7}\b/],
+    rejectionMessage: "Uploaded file is not a genuine Driving License. Must contain transport authority header AND license details.",
   },
   dl: {
     name: "Driving License",
-    keywords: ["DRIVING", "LICENCE", "LICENSE", "UNION OF INDIA", "TRANSPORT", "MOTOR VEHICLE", "AUTHORISATION", "FORM 7", "PARIVAHAN", "SARATHI"],
-    rejectionMessage: "Uploaded file does not appear to be a Driving License. Missing transport department or licensing authority markers.",
+    authorityKeywords: ["UNION OF INDIA", "TRANSPORT DEPARTMENT", "MOTOR VEHICLES", "PARIVAHAN", "SARATHI", "GOVERNMENT OF"],
+    documentKeywords: ["DRIVING LICENCE", "DRIVING LICENSE", "FORM 7", "DL NO"],
+    patterns: [/\b[A-Z]{2}[0-9]{2}[0-9]{4}[0-9]{7}\b/],
+    rejectionMessage: "Uploaded file is not a genuine Driving License. Must contain transport authority header AND license details.",
   },
   driving_licence: {
     name: "Driving License",
-    keywords: ["DRIVING", "LICENCE", "LICENSE", "UNION OF INDIA", "TRANSPORT", "MOTOR VEHICLE", "AUTHORISATION", "FORM 7", "PARIVAHAN", "SARATHI"],
-    rejectionMessage: "Uploaded file does not appear to be a Driving License. Missing transport department or licensing authority markers.",
+    authorityKeywords: ["UNION OF INDIA", "TRANSPORT DEPARTMENT", "MOTOR VEHICLES", "PARIVAHAN", "SARATHI", "GOVERNMENT OF"],
+    documentKeywords: ["DRIVING LICENCE", "DRIVING LICENSE", "FORM 7", "DL NO"],
+    patterns: [/\b[A-Z]{2}[0-9]{2}[0-9]{4}[0-9]{7}\b/],
+    rejectionMessage: "Uploaded file is not a genuine Driving License. Must contain transport authority header AND license details.",
   },
   passport: {
     name: "Passport",
-    keywords: ["PASSPORT", "REPUBLIC OF INDIA", "INDIAN EMPIRE", "SURNAME", "GIVEN NAMES", "NATIONALITY", "P<IND"],
+    authorityKeywords: ["REPUBLIC OF INDIA", "INDIAN EMPIRE", "PASSPORT OFFICE", "MINISTRY OF EXTERNAL AFFAIRS"],
+    documentKeywords: ["PASSPORT", "P<IND", "GIVEN NAMES", "NATIONALITY"],
     patterns: [/\b[A-Z][0-9]{7}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Indian Passport. Missing Republic of India or passport travel document markers.",
+    rejectionMessage: "Uploaded file is not a genuine Indian Passport. Must contain Republic of India header AND passport number.",
   },
   voter: {
     name: "Voter ID Card",
-    keywords: ["ELECTION", "COMMISSION", "ELECTOR", "IDENTITY CARD", "BHARAT NIRVACHAN", "EPIC"],
+    authorityKeywords: ["ELECTION COMMISSION OF INDIA", "BHARAT NIRVACHAN AAYOG", "ELECTION COMMISSION"],
+    documentKeywords: ["ELECTOR", "IDENTITY CARD", "EPIC"],
     patterns: [/\b[A-Z]{3}[0-9]{7}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Election Commission Voter ID card.",
+    rejectionMessage: "Uploaded file is not a genuine Election Commission Voter ID card.",
   },
   voter_id: {
     name: "Voter ID Card",
-    keywords: ["ELECTION", "COMMISSION", "ELECTOR", "IDENTITY CARD", "BHARAT NIRVACHAN", "EPIC"],
+    authorityKeywords: ["ELECTION COMMISSION OF INDIA", "BHARAT NIRVACHAN AAYOG", "ELECTION COMMISSION"],
+    documentKeywords: ["ELECTOR", "IDENTITY CARD", "EPIC"],
     patterns: [/\b[A-Z]{3}[0-9]{7}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Election Commission Voter ID card.",
+    rejectionMessage: "Uploaded file is not a genuine Election Commission Voter ID card.",
   },
   epic: {
     name: "Voter ID Card",
-    keywords: ["ELECTION", "COMMISSION", "ELECTOR", "IDENTITY CARD", "BHARAT NIRVACHAN", "EPIC"],
+    authorityKeywords: ["ELECTION COMMISSION OF INDIA", "BHARAT NIRVACHAN AAYOG", "ELECTION COMMISSION"],
+    documentKeywords: ["ELECTOR", "IDENTITY CARD", "EPIC"],
     patterns: [/\b[A-Z]{3}[0-9]{7}\b/],
-    rejectionMessage: "Uploaded file does not appear to be an Election Commission Voter ID card.",
+    rejectionMessage: "Uploaded file is not a genuine Election Commission Voter ID card.",
   },
   ration_card: {
     name: "Ration Card",
-    keywords: ["RATION", "CIVIL SUPPLIES", "CONSUMER AFFAIRS", "FAIR PRICE", "FOOD", "FAMILY", "FPS", "GRAIN", "DISTRIBUTION"],
-    rejectionMessage: "Uploaded file does not appear to be a Ration Card. Missing food & civil supplies authority markers.",
+    authorityKeywords: ["CIVIL SUPPLIES", "CONSUMER AFFAIRS", "FOOD AND SUPPLIES", "GOVERNMENT OF"],
+    documentKeywords: ["RATION CARD", "FAIR PRICE", "FAMILY HEAD", "FPS"],
+    rejectionMessage: "Uploaded file is not a genuine Ration Card. Must contain food & civil supplies authority markers.",
   },
   income_certificate: {
     name: "Income Certificate",
-    keywords: ["INCOME", "ANNUAL", "REVENUE", "TAHSILDAR", "TEHSILDAR", "CERTIFICATE", "CERTIFIED", "DISTRICT", "GOVERNMENT", "RUPEES"],
-    rejectionMessage: "Uploaded file does not appear to be an Income Certificate. Missing revenue or tahsildar authority seals.",
+    authorityKeywords: ["REVENUE DEPARTMENT", "TAHSILDAR", "TEHSILDAR", "DISTRICT MAGISTRATE", "GOVERNMENT OF"],
+    documentKeywords: ["INCOME CERTIFICATE", "ANNUAL INCOME", "CERTIFIED THAT"],
+    rejectionMessage: "Uploaded file is not a genuine Income Certificate. Must contain revenue authority seals.",
   },
   caste_certificate: {
     name: "Caste Certificate",
-    keywords: ["CASTE", "COMMUNITY", "TRIBE", "SCHEDULED", "REVENUE", "TAHSILDAR", "GOVERNMENT", "CERTIFICATE", "OBC", "SC", "ST"],
-    rejectionMessage: "Uploaded file does not appear to be a Caste / Community Certificate.",
+    authorityKeywords: ["REVENUE DEPARTMENT", "TAHSILDAR", "DISTRICT MAGISTRATE", "GOVERNMENT OF"],
+    documentKeywords: ["CASTE CERTIFICATE", "COMMUNITY CERTIFICATE", "SCHEDULED CASTE", "SCHEDULED TRIBE", "OTHER BACKWARD"],
+    rejectionMessage: "Uploaded file is not a genuine Caste Certificate.",
   },
   domicile_certificate: {
     name: "Domicile Certificate",
-    keywords: ["DOMICILE", "RESIDENCE", "RESIDENT", "NATIVE", "DISTRICT MAGISTRATE", "TAHSILDAR", "GOVERNMENT", "STATE"],
-    rejectionMessage: "Uploaded file does not appear to be a Domicile / Residence Certificate.",
+    authorityKeywords: ["DISTRICT MAGISTRATE", "TAHSILDAR", "SUB DIVISIONAL", "GOVERNMENT OF"],
+    documentKeywords: ["DOMICILE CERTIFICATE", "RESIDENCE CERTIFICATE", "PERMANENT RESIDENT"],
+    rejectionMessage: "Uploaded file is not a genuine Domicile Certificate.",
   },
   birth_certificate: {
     name: "Birth Certificate",
-    keywords: ["BIRTH", "CERTIFICATE", "REGISTRATION OF BIRTHS", "MUNICIPAL", "CORPORATION", "CHILD", "MOTHER", "FATHER", "SEX"],
-    rejectionMessage: "Uploaded file does not appear to be a Birth Certificate. Missing birth registry or municipal corporation markers.",
+    authorityKeywords: ["REGISTRATION OF BIRTHS", "MUNICIPAL CORPORATION", "GRAM PANCHAYAT", "PUBLIC HEALTH"],
+    documentKeywords: ["BIRTH CERTIFICATE", "DATE OF BIRTH", "CHILD NAME"],
+    rejectionMessage: "Uploaded file is not a genuine Birth Certificate.",
   },
   marriage_certificate: {
     name: "Marriage Certificate",
-    keywords: ["MARRIAGE", "REGISTRAR OF MARRIAGES", "BRIDE", "GROOM", "HUSBAND", "WIFE", "SOLEMNIZED", "MARRIAGES ACT"],
-    rejectionMessage: "Uploaded file does not appear to be a Marriage Certificate.",
+    authorityKeywords: ["REGISTRAR OF MARRIAGES", "GOVERNMENT OF", "REVENUE DEPARTMENT"],
+    documentKeywords: ["MARRIAGE CERTIFICATE", "SOLEMNIZED", "BRIDE", "GROOM"],
+    rejectionMessage: "Uploaded file is not a genuine Marriage Certificate.",
   },
 
   // ── Educational Credentials ─────────────────────────────
   degree_certificate: {
     name: "Degree Certificate",
-    keywords: ["DEGREE", "BACHELOR", "MASTER", "DOCTOR", "UNIVERSITY", "INSTITUTE", "CONVOCATION", "FACULTY", "ACADEMIC", "AWARDED", "GRADUATED", "CONTROLLER"],
-    rejectionMessage: "Uploaded file does not appear to be a Degree Certificate. Missing university or degree conferring markers.",
+    authorityKeywords: ["UNIVERSITY", "INSTITUTE OF TECHNOLOGY", "INSTITUTE", "ACADEMIC COUNCIL"],
+    documentKeywords: ["DEGREE", "BACHELOR", "MASTER", "DOCTOR OF", "CONVOCATION", "AWARDED THE DEGREE", "PASSED"],
+    rejectionMessage: "Uploaded file is not a genuine Degree Certificate. Must contain university name AND degree title.",
   },
   marksheet: {
     name: "Marksheet / Transcript",
-    keywords: ["MARKSHEET", "STATEMENT OF MARKS", "TRANSCRIPT", "ROLL NO", "SEMESTER", "GRADE", "CGPA", "PERCENTAGE", "EXAMINATION", "CONTROLLER", "TOTAL"],
-    rejectionMessage: "Uploaded file does not appear to be a Marksheet or Academic Transcript.",
+    authorityKeywords: ["UNIVERSITY", "BOARD OF SECONDARY", "CENTRAL BOARD", "INSTITUTE", "CONTROLLER OF EXAMINATIONS"],
+    documentKeywords: ["MARKSHEET", "STATEMENT OF MARKS", "GRADE CARD", "SEMESTER", "ROLL NO"],
+    rejectionMessage: "Uploaded file is not a genuine Marksheet or Academic Transcript.",
   },
   diploma: {
     name: "Diploma Certificate",
-    keywords: ["DIPLOMA", "POLYTECHNIC", "STATE BOARD", "TECHNICAL EDUCATION", "SUCCESSFULLY COMPLETED", "CURRICULUM"],
-    rejectionMessage: "Uploaded file does not appear to be a Diploma Certificate.",
+    authorityKeywords: ["STATE BOARD OF TECHNICAL", "POLYTECHNIC", "BOARD OF TECHNICAL EDUCATION"],
+    documentKeywords: ["DIPLOMA", "SUCCESSFULLY COMPLETED", "CURRICULUM"],
+    rejectionMessage: "Uploaded file is not a genuine Diploma Certificate.",
   },
   school_certificate: {
     name: "School Transfer / Leaving Certificate",
-    keywords: ["SCHOOL", "TRANSFER", "LEAVING", "TC", "ADMISSION", "CONDUCT", "CHARACTER", "DATE OF BIRTH", "PROMOTED", "HEADMASTER", "PRINCIPAL"],
-    rejectionMessage: "Uploaded file does not appear to be a School Transfer or Leaving Certificate.",
+    authorityKeywords: ["SCHOOL", "ACADEMY", "VIDYALAYA", "HIGH SCHOOL"],
+    documentKeywords: ["TRANSFER CERTIFICATE", "LEAVING CERTIFICATE", "TC NO", "DATE OF BIRTH", "PROMOTED"],
+    rejectionMessage: "Uploaded file is not a genuine School Transfer or Leaving Certificate.",
   },
   college_id: {
     name: "College Student ID",
-    keywords: ["COLLEGE", "STUDENT", "IDENTITY CARD", "ID NO", "ROLL NO", "VALID UP TO", "DEPARTMENT", "CAMPUS", "PRINCIPAL"],
-    rejectionMessage: "Uploaded file does not appear to be a College Student ID card.",
+    authorityKeywords: ["COLLEGE", "INSTITUTE", "CAMPUS", "UNIVERSITY"],
+    documentKeywords: ["STUDENT IDENTITY", "STUDENT ID", "ROLL NO", "VALID UP TO"],
+    rejectionMessage: "Uploaded file is not a genuine College Student ID card.",
   },
 
   // ── Healthcare & Medical ────────────────────────────────
   discharge_summary: {
     name: "Hospital Discharge Summary",
-    keywords: ["HOSPITAL", "DISCHARGE", "ADMISSION", "DIAGNOSIS", "CONSULTANT", "PATIENT", "TREATMENT", "CONDITION", "MEDICATION"],
-    rejectionMessage: "Uploaded file does not appear to be a Hospital Discharge Summary.",
+    authorityKeywords: ["HOSPITAL", "CLINIC", "MEDICAL CENTRE", "INSTITUTE OF MEDICAL SCIENCES"],
+    documentKeywords: ["DISCHARGE SUMMARY", "DATE OF ADMISSION", "DIAGNOSIS", "TREATMENT GIVEN"],
+    rejectionMessage: "Uploaded file is not a genuine Hospital Discharge Summary.",
   },
   prescription: {
     name: "Medical Prescription",
-    keywords: ["RX", "DOCTOR", "DR.", "CLINIC", "HOSPITAL", "PATIENT", "PRESCRIPTION", "MEDICINE", "TABLET", "SYRUP", "DOSAGE", "REG NO"],
-    rejectionMessage: "Uploaded file does not appear to be a Medical Prescription.",
+    authorityKeywords: ["HOSPITAL", "CLINIC", "DR.", "DOCTOR", "MBBS", "MD"],
+    documentKeywords: ["RX", "PRESCRIPTION", "MEDICINE", "DOSAGE", "TABLET"],
+    rejectionMessage: "Uploaded file is not a genuine Medical Prescription.",
   },
   health_insurance: {
     name: "Health Insurance Card",
-    keywords: ["INSURANCE", "POLICY", "TPA", "BENEFICIARY", "CARD NO", "HEALTH", "VALID", "SUM INSURED", "COVERAGE"],
-    rejectionMessage: "Uploaded file does not appear to be a Health Insurance Card or Policy document.",
+    authorityKeywords: ["INSURANCE", "ASSURANCE", "TPA", "IRDAI"],
+    documentKeywords: ["HEALTH CARD", "POLICY NO", "SUM INSURED", "BENEFICIARY"],
+    rejectionMessage: "Uploaded file is not a genuine Health Insurance Card or Policy document.",
   },
   vaccination_certificate: {
     name: "Vaccination Record",
-    keywords: ["VACCINE", "VACCINATION", "DOSE", "BENEFICIARY", "COWIN", "IMMUNIZATION", "COVID", "MINISTRY OF HEALTH"],
-    rejectionMessage: "Uploaded file does not appear to be a Vaccination Certificate or Record.",
+    authorityKeywords: ["MINISTRY OF HEALTH", "COWIN", "HEALTH AND FAMILY WELFARE"],
+    documentKeywords: ["VACCINATION", "DOSE", "BENEFICIARY", "IMMUNIZATION"],
+    rejectionMessage: "Uploaded file is not a genuine Vaccination Certificate or Record.",
   },
   lab_report: {
     name: "Diagnostic / Lab Report",
-    keywords: ["LABORATORY", "DIAGNOSTIC", "PATHOLOGY", "TEST", "SAMPLE", "SPECIMEN", "REFERENCE RANGE", "RESULT", "INVESTIGATION", "BIOCHEMISTRY"],
-    rejectionMessage: "Uploaded file does not appear to be a Diagnostic or Lab Report.",
+    authorityKeywords: ["LABORATORY", "DIAGNOSTICS", "PATHOLOGY", "IMAGING"],
+    documentKeywords: ["TEST REPORT", "INVESTIGATION", "REFERENCE RANGE", "SPECIMEN"],
+    rejectionMessage: "Uploaded file is not a genuine Diagnostic or Lab Report.",
   },
 
   // ── Financial Institutions ──────────────────────────────
   bank_statement: {
     name: "Bank Statement",
-    keywords: ["BANK", "ACCOUNT", "STATEMENT", "IFSC", "BALANCE", "DEBIT", "CREDIT", "TRANSACTION", "BRANCH", "WITHDRAWAL", "DEPOSIT"],
-    rejectionMessage: "Uploaded file does not appear to be a Bank Account Statement.",
+    authorityKeywords: ["BANK", "BANK OF", "COOPERATIVE BANK", "FINANCIAL SERVICES"],
+    documentKeywords: ["STATEMENT OF ACCOUNT", "ACCOUNT NUMBER", "IFSC", "CLOSING BALANCE", "TRANSACTION"],
+    rejectionMessage: "Uploaded file is not a genuine Bank Account Statement.",
   },
   salary_slip: {
     name: "Salary Slip / Pay Stub",
-    keywords: ["SALARY", "PAYSLIP", "PAY SLIP", "EARNINGS", "DEDUCTIONS", "BASIC PAY", "NET PAY", "EMPLOYEE", "HRA", "PROVIDENT FUND", "PF", "GROSS"],
-    rejectionMessage: "Uploaded file does not appear to be a Salary Slip or Pay Stub.",
+    authorityKeywords: ["PVT LTD", "LTD", "COMPANY", "CORPORATION", "ENTERPRISES", "ORGANIZATION"],
+    documentKeywords: ["SALARY SLIP", "PAY SLIP", "EARNINGS", "BASIC SALARY", "NET PAY", "EMPLOYEE ID"],
+    rejectionMessage: "Uploaded file is not a genuine Salary Slip or Pay Stub.",
   },
   tax_return: {
     name: "Income Tax Return (ITR)",
-    keywords: ["INCOME TAX", "RETURN", "ACKNOWLEDGEMENT", "ITR", "ASSESSMENT YEAR", "PAN", "VERIFICATION", "TAX PAID", "TOTAL INCOME"],
-    rejectionMessage: "Uploaded file does not appear to be an Income Tax Return Acknowledgement.",
+    authorityKeywords: ["INCOME TAX DEPARTMENT", "GOVERNMENT OF INDIA", "CENTRAL BOARD OF DIRECT TAXES"],
+    documentKeywords: ["ITR-V", "ACKNOWLEDGEMENT", "ASSESSMENT YEAR", "VERIFICATION FORM"],
+    rejectionMessage: "Uploaded file is not a genuine Income Tax Return Acknowledgement.",
   },
 
   // ── Other / Miscellaneous ───────────────────────────────
   utility_bill: {
     name: "Utility Bill",
-    keywords: ["ELECTRICITY", "WATER", "GAS", "BILL", "CONSUMER NO", "UNITS", "DUE DATE", "AMOUNT PAYABLE", "TARIFF", "INVOICE"],
-    rejectionMessage: "Uploaded file does not appear to be a Utility Bill.",
+    authorityKeywords: ["ELECTRICITY", "WATER SUPPLY", "GAS", "TELECOM", "POWER CORPORATION"],
+    documentKeywords: ["CONSUMER NUMBER", "BILL DATE", "AMOUNT PAYABLE", "TARIFF", "ELECTRICITY BILL"],
+    rejectionMessage: "Uploaded file is not a genuine Utility Bill.",
   },
   rent_agreement: {
     name: "Rent Agreement",
-    keywords: ["RENT", "AGREEMENT", "LEASE", "LANDLORD", "TENANT", "PREMISES", "MONTHLY RENT", "SECURITY DEPOSIT", "STAMP PAPER"],
-    rejectionMessage: "Uploaded file does not appear to be a Rent Agreement.",
+    authorityKeywords: ["STAMP DUTY", "GOVERNMENT OF", "NOTARY", "REGISTRAR"],
+    documentKeywords: ["RENT AGREEMENT", "TENANCY AGREEMENT", "LANDLORD", "TENANT", "LEASE AGREEMENT"],
+    rejectionMessage: "Uploaded file is not a genuine Rent Agreement.",
   },
 };
 
@@ -253,10 +289,12 @@ export async function inspectDocumentAuthenticity(
 
     if (rule) {
       const upperPdf = rawPdf.toUpperCase();
-      const hasKeyword = rule.keywords.some((kw) => upperPdf.includes(kw));
-      const hasPattern = rule.patterns?.some((pat) => pat.test(upperPdf));
+      const hasAuth = rule.authorityKeywords.some((kw) => upperPdf.includes(kw));
+      const hasDoc = rule.documentKeywords.some((kw) => upperPdf.includes(kw));
+      const hasPat = rule.patterns?.some((pat) => pat.test(upperPdf));
 
-      if (!hasKeyword && !hasPattern && !isSigned && !hasGovMarker) {
+      const passed = isSigned || hasGovMarker || (hasAuth && (hasDoc || hasPat));
+      if (!passed) {
         reasons.push(rule.rejectionMessage);
       } else {
         checksPassed.push(`Verified ${rule.name} content markers in PDF`);
@@ -308,10 +346,14 @@ export async function inspectDocumentAuthenticity(
       const rawText = (ocrResult.data?.text || "").toUpperCase();
 
       if (rule) {
-        const hasKeyword = rule.keywords.some((kw) => rawText.includes(kw));
-        const hasPattern = rule.patterns?.some((pat) => pat.test(rawText));
+        const hasAuth = rule.authorityKeywords.some((kw) => rawText.includes(kw));
+        const hasDoc = rule.documentKeywords.some((kw) => rawText.includes(kw));
+        const hasPat = rule.patterns?.some((pat) => pat.test(rawText));
 
-        if (!hasKeyword && !hasPattern) {
+        // Enforce POSITIVE PROOF: must have Authority Anchor AND Document Identifier/Pattern
+        const passed = hasAuth && (hasDoc || hasPat);
+
+        if (!passed) {
           reasons.push(rule.rejectionMessage);
         } else {
           checksPassed.push(`Verified ${rule.name} visual markings on document image`);
@@ -319,14 +361,16 @@ export async function inspectDocumentAuthenticity(
       } else {
         // General fallback: ensure image contains legible text characters
         const cleanedChars = rawText.replace(/[^A-Z0-9]/g, "");
-        if (cleanedChars.length < 25) {
-          reasons.push("Uploaded image contains insufficient legible document text. Please upload a clear photo or scan of your document.");
+        if (cleanedChars.length < 30) {
+          reasons.push("Uploaded image contains insufficient legible document text. Please upload a clear photo or scan of your physical document.");
         } else {
           checksPassed.push("Legible document text detected on uploaded image");
         }
       }
     } catch (ocrErr) {
       console.warn("[OCR Inspection Note]:", ocrErr);
+      // FAIL-CLOSED: if scanner cannot read text, reject dummy or blurry files
+      reasons.push("Could not verify document text. Please upload a clear, legible photo or scan of your physical document.");
     }
 
     const isAuthentic = reasons.length === 0;
