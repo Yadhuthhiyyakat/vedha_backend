@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createToken,
   verifyToken,
+  getVerifiedDocumentFile,
   getTokensForDocument,
   revokeToken,
 } from "../controllers/token.controller.js";
@@ -14,6 +15,9 @@ const router = Router();
 // GET  /api/tokens/verify/:token — PUBLIC endpoint, optionally authenticated
 // Used by QR-code scanners to verify a document without being logged in
 router.get("/verify/:token", optionalAuth, verifyToken);
+
+// GET  /api/tokens/verify/:token/file — PUBLIC endpoint to stream decrypted document file/photo if authorized
+router.get("/verify/:token/file", optionalAuth, getVerifiedDocumentFile);
 
 // All remaining token routes require authentication
 router.use(requireAuth);
