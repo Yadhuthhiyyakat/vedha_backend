@@ -252,7 +252,7 @@ export const uploadDocumentFile = async (
 
   // 0. Inspect physical & digital document authenticity
   const targetSubcategory = subcategory || category || "general";
-  const authCheck = inspectDocumentAuthenticity(file.buffer, file.mimetype, targetSubcategory);
+  const authCheck = await inspectDocumentAuthenticity(file.buffer, file.mimetype, targetSubcategory);
   if (!authCheck.isAuthentic && authCheck.reasons.length > 0) {
     res.status(422).json({
       error: "Document authenticity validation failed",
