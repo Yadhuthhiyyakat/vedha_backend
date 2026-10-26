@@ -16,13 +16,28 @@ import { errorHandler } from "./middleware/error.middleware.js";
 const app = express();
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
-const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000").split(
-  ","
-);
+const configuredOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Allow mobile apps, curl, server-to-server requests with no origin
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        configuredOrigins.includes(origin) ||
+        origin === "https://veda-beryl-rho.vercel.app" ||
+        /^https:\/\/.*\.vercel\.app$/.test(origin) ||
+        origin.endsWith(".vercel.app");
+
+      if (isAllowed) {
+        return callback(null, true);
+      }
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   })
 );

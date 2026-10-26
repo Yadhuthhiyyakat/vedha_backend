@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Response, Request } from "express";
 import { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { supabaseAdmin } from "../config/supabase.js";
@@ -20,12 +21,31 @@ export const listInstitutions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { data: dbInstitutions, error } = await supabaseAdmin
+    // 1. Check official institutions registry table if created
+    let officialList: any[] = [];
+    try {
+      const { data: registry, error: regErr } = await supabaseAdmin
+        .from("institutions")
+        .select("id, name, type, domain")
+        .eq("is_active", true);
+      if (!regErr && registry && registry.length > 0) {
+        officialList = registry.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          type: r.type || "university",
+          domain: r.domain,
+          verified: true,
+        }));
+      }
+    } catch (_) {}
+
+    // 2. Query registered institution user accounts from profiles
+    const { data: dbInstitutions } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name, institution_name, institution_type, avatar_url")
       .eq("role", "institution");
 
-    const dynamicList = (dbInstitutions || []).map((inst) => ({
+    const dynamicList = (dbInstitutions || []).map((inst: any) => ({
       id: inst.id,
       name: inst.institution_name || inst.full_name || "Authorized Institution",
       type: inst.institution_type || "institution",
@@ -33,12 +53,17 @@ export const listInstitutions = async (
       verified: true,
     }));
 
-    // Merge default institutions with dynamic DB institutions (avoid duplicate names)
-    const existingNames = new Set(dynamicList.map((i) => i.name.toLowerCase()));
-    const merged = [
-      ...dynamicList,
-      ...DEFAULT_INSTITUTIONS.filter((i) => !existingNames.has(i.name.toLowerCase())),
-    ];
+    // Merge: registry institutions + profile institutions + DEFAULT_INSTITUTIONS
+    const existingNames = new Set<string>();
+    const merged: any[] = [];
+
+    for (const item of [...officialList, ...dynamicList, ...DEFAULT_INSTITUTIONS]) {
+      const lower = item.name.toLowerCase().trim();
+      if (!existingNames.has(lower)) {
+        existingNames.add(lower);
+        merged.push(item);
+      }
+    }
 
     res.json({ count: merged.length, institutions: merged });
   } catch (err: any) {
@@ -124,9 +149,23 @@ export const submitDocumentForVerification = async (
     // Notification failure should not block submission
   }
 
+  // Generate immediate Institutional Verification QR Token (valid for 24 hours)
+  const qrToken = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  await supabaseAdmin.from("verification_tokens").insert({
+    document_id: doc.id,
+    token: qrToken,
+    expires_at: expiresAt,
+    shared_fields: ["title", "category", "subcategory", "status", "expiry_date", "document_data", "file"],
+  });
+
   res.json({
     message: `Document submitted to ${target_institution.trim()} for verification.`,
     document: updatedDoc,
+    token: qrToken,
+    qr_token: qrToken,
+    expires_at: expiresAt,
   });
 };
 
