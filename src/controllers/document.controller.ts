@@ -30,7 +30,7 @@ function parseFlexibleDate(val?: string | null): string | null {
 // ─── Column sets ──────────────────────────────────────────────────────────────
 // Never expose raw document_data (encrypted blob) in list / detail meta views
 const DOCUMENT_META_COLUMNS =
-  "id, owner_id, title, type, category, subcategory, status, expiry_date, created_at, updated_at";
+  "id, owner_id, title, type, category, subcategory, status, expiry_date, created_at, updated_at, target_institution, submission_status, applicant_notes, verification_seal";
 
 const STORAGE_BUCKET = "documents";
 
