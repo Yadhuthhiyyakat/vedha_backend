@@ -181,6 +181,9 @@ export const verifyToken = async (
   const responsePayload: Record<string, unknown> = {
     valid: true,
     expires_at: tokenRow.expires_at,
+    document_id: tokenRow.document_id,
+    target_institution: document.target_institution || null,
+    submission_status: document.submission_status || null,
     document: exposedData,
     verification_seal: document.verification_seal || null,
   };

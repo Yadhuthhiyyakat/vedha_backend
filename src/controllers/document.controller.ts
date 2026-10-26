@@ -153,12 +153,24 @@ export const decryptDocument = async (
     .from("documents")
     .select("id, owner_id, document_data, title, type, category, subcategory, status")
     .eq("id", docId)
-    .eq("owner_id", userId)
     .single();
 
   if (error || !data) {
     res.status(404).json({ error: "Document not found" });
     return;
+  }
+
+  if (data.owner_id !== userId) {
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (callerProfile?.role !== "institution" && callerProfile?.role !== "admin") {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
   }
 
   if (!data.document_data) {
@@ -379,12 +391,24 @@ export const downloadDocumentFile = async (
     .from("documents")
     .select("id, owner_id, document_data, title")
     .eq("id", docId)
-    .eq("owner_id", userId)
     .single();
 
   if (error || !doc) {
     res.status(404).json({ error: "Document not found" });
     return;
+  }
+
+  if (doc.owner_id !== userId) {
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    if (callerProfile?.role !== "institution" && callerProfile?.role !== "admin") {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
   }
 
   if (!doc.document_data) {
