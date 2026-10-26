@@ -9,6 +9,8 @@ import logRoutes from "./routes/log.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import deviceRoutes from "./routes/device.routes.js";
 import consentRoutes from "./routes/consent.routes.js";
+import institutionRoutes from "./routes/institution.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -42,6 +44,8 @@ app.use("/api/logs", logRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/consent", consentRoutes);
+app.use("/api/institutions", institutionRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

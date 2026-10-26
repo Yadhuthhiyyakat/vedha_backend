@@ -50,15 +50,24 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
   const { access_token, refresh_token, expires_in } = data.session;
 
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, institution_name, institution_type")
+    .eq("id", data.user.id)
+    .single();
+
   res.json({
     access_token,
     refresh_token,
-    expires_in,        // seconds until access_token expires (default: 3600)
+    expires_in,
     token_type: "Bearer",
     user: {
       id: data.user.id,
       email: data.user.email,
       full_name: data.user.user_metadata?.["full_name"] ?? null,
+      role: profile?.role || "citizen",
+      institution_name: profile?.institution_name || null,
+      institution_type: profile?.institution_type || null,
     },
   });
 };
@@ -124,7 +133,7 @@ export const me = async (
 
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id, username, full_name, avatar_url, updated_at")
+    .select("id, username, full_name, avatar_url, updated_at, role, institution_name, institution_type")
     .eq("id", userId)
     .single();
 
