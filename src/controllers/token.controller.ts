@@ -190,10 +190,11 @@ export const verifyToken = async (
   const sharedFields = tokenRow.shared_fields as string[] | null;
   const allowFileShare =
     !!fileMeta.file_path &&
-    !!sharedFields &&
-    sharedFields.some((f) =>
-      ["file", "document_file", "photo", "file_url", "attachment"].includes(f.toLowerCase().trim())
-    );
+    (!sharedFields ||
+      sharedFields.length === 0 ||
+      sharedFields.some((f) =>
+        ["file", "document_file", "photo", "file_url", "attachment"].includes(f.toLowerCase().trim())
+      ));
 
   // Filter to only shared fields if specified
   let exposedData: Record<string, unknown> = {};
@@ -281,7 +282,8 @@ export const getVerifiedDocumentFile = async (
 
   const sharedFields = tokenRow.shared_fields as string[] | null;
   const allowFileShare =
-    !!sharedFields &&
+    !sharedFields ||
+    sharedFields.length === 0 ||
     sharedFields.some((f) =>
       ["file", "document_file", "photo", "file_url", "attachment"].includes(f.toLowerCase().trim())
     );

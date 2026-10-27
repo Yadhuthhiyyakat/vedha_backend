@@ -18,7 +18,7 @@ function parseFlexibleDate(val?: string | null): string | null {
   if (!val) return null;
   const trimmed = val.trim();
   const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (dmyMatch) {
+  if (dmyMatch && dmyMatch[1] && dmyMatch[2] && dmyMatch[3]) {
     const [, day, month, year] = dmyMatch;
     const iso = new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00Z`);
     if (!isNaN(iso.getTime())) return iso.toISOString();
