@@ -39,10 +39,12 @@ export const createToken = async (
     document_id,
     expires_in_minutes = 10,
     shared_fields,
+    allowed_emails,
   } = req.body as {
     document_id: string;
     expires_in_minutes?: number;
     shared_fields?: string[];
+    allowed_emails?: string[];
   };
 
   // Confirm the user owns the document
@@ -63,14 +65,24 @@ export const createToken = async (
     Date.now() + expires_in_minutes * 60 * 1000
   ).toISOString();
 
+  const cleanEmails =
+    allowed_emails && allowed_emails.length > 0
+      ? allowed_emails.map((e) => e.trim().toLowerCase()).filter(Boolean)
+      : null;
+
+  const insertPayload: Record<string, unknown> = {
+    document_id,
+    token,
+    expires_at,
+    shared_fields: shared_fields ?? null,
+  };
+  if (cleanEmails && cleanEmails.length > 0) {
+    insertPayload.allowed_emails = cleanEmails;
+  }
+
   const { data, error } = await supabaseAdmin
     .from("verification_tokens")
-    .insert({
-      document_id,
-      token,
-      expires_at,
-      shared_fields: shared_fields ?? null,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
@@ -108,6 +120,30 @@ export const verifyToken = async (
     await writeVerificationLog(tokenRow.document_id as string, verifierId, "failed");
     res.status(410).json({ error: "Token has expired" });
     return;
+  }
+
+  // ─── Enforce Email RBAC (View-Only Restriction) ──────────────────────────
+  const allowedEmails = tokenRow.allowed_emails as string[] | null;
+  if (allowedEmails && allowedEmails.length > 0) {
+    const authUser = (req as AuthenticatedRequest).user;
+    if (!authUser || !authUser.email) {
+      await writeVerificationLog(tokenRow.document_id as string, verifierId, "failed");
+      res.status(401).json({
+        error: "Authentication required: This document can only be viewed by authorized email addresses. Please log in.",
+        code: "AUTH_REQUIRED",
+      });
+      return;
+    }
+    const userEmail = authUser.email.toLowerCase().trim();
+    const authorized = allowedEmails.map((e) => e.toLowerCase().trim()).includes(userEmail);
+    if (!authorized) {
+      await writeVerificationLog(tokenRow.document_id as string, verifierId, "failed");
+      res.status(403).json({
+        error: `Access Denied: Your account (${authUser.email}) is not authorized to view this document.`,
+        code: "RBAC_FORBIDDEN",
+      });
+      return;
+    }
   }
 
   const document = (tokenRow.documents as Record<string, unknown>) || {};
@@ -220,6 +256,27 @@ export const getVerifiedDocumentFile = async (
   if (new Date(tokenRow.expires_at) < new Date()) {
     res.status(410).json({ error: "Token has expired" });
     return;
+  }
+
+  // Enforce Email RBAC for file download
+  const fileAllowedEmails = tokenRow.allowed_emails as string[] | null;
+  if (fileAllowedEmails && fileAllowedEmails.length > 0) {
+    const authUser = (req as AuthenticatedRequest).user;
+    if (!authUser || !authUser.email) {
+      res.status(401).json({
+        error: "Authentication required: This file can only be viewed by authorized email addresses.",
+        code: "AUTH_REQUIRED",
+      });
+      return;
+    }
+    const userEmail = authUser.email.toLowerCase().trim();
+    if (!fileAllowedEmails.map((e) => e.toLowerCase().trim()).includes(userEmail)) {
+      res.status(403).json({
+        error: `Access Denied: Your account (${authUser.email}) is not authorized to view this file.`,
+        code: "RBAC_FORBIDDEN",
+      });
+      return;
+    }
   }
 
   const sharedFields = tokenRow.shared_fields as string[] | null;

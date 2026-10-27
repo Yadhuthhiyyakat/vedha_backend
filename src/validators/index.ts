@@ -61,4 +61,5 @@ export const createTokenSchema = z.object({
     .default(10)
     .optional(),
   shared_fields: z.array(z.string()).nullable().optional(),
+  allowed_emails: z.array(z.string()).nullable().optional(),
 });
